@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -17,12 +18,15 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-Base.metadata.create_all(bind=engine) # cria as tabelas, se ainda não existirem
+# Criar tabelas
+Base.metadata.create_all(bind=engine) 
 
+# GET - Todos os produtos
 @app.get('/produtos', response_model=list[ProdutoResponse])
 def listar_produtos(db: Session = Depends(get_db)):
     return db.query(ProdutoDB).all()
 
+# POST - Criar novo produto
 @app.post('/produtos', response_model=ProdutoResponse, status_code=201)
 def criar_produto(produto: ProdutoCreate, db: Session = Depends(get_db)):
     novo_produto = ProdutoDB(**produto.dict())
@@ -47,3 +51,17 @@ def remover_produto(produto_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail='Produto não encontrado')
     db.delete(produto)
     db.commit()
+
+# PUT /produtos/{id} -> atualiza um produto existente no banco
+@app.put('/produtos/{produto_id}', response_model=ProdutoResponse)
+def atualizar_produto(produto_id: int, dados: ProdutoCreate, db: Session = Depends(get_db)):
+    produto = db.query(ProdutoDB).filter(ProdutoDB.id == produto_id).first()
+    if produto is None:
+        raise HTTPException(status_code=404, detail='Produto não encontrado')
+    produto.nome = dados.nome
+    produto.preco = dados.preco
+    produto.quantidade = dados.quantidade
+
+    db.commit()
+    db.refresh(produto)
+    return produto
