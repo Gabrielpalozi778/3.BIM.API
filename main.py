@@ -5,9 +5,19 @@ from database import Base, engine, get_db
 from models import ProdutoDB
 from schemas import ProdutoCreate, ProdutoResponse
 from fastapi import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    # em produção, restringir para o domínio real do front-end
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 Base.metadata.create_all(bind=engine) # cria as tabelas, se ainda não existirem
-app = FastAPI()
 
 @app.get('/produtos', response_model=list[ProdutoResponse])
 def listar_produtos(db: Session = Depends(get_db)):
